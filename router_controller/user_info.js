@@ -69,18 +69,20 @@ exports.bindAccount = (req, res) => {
 
 // 获取用户信息
 exports.getUserInfo = (req, res) => {
-  if(!req.query.id) return res.send({
-    status: 1,
-    message: '获取失败'
-  })
   const sql = 'select * from users where id = ?'
   db.query(sql, req.query.id, (err, results) => {
     if (err) return res.cc(err)
+    if (results.length == 0) {
+      return res.send({
+        status: 1,
+        message: '用户不存在'
+      })
+    }
     res.send(results)
   })
 }
 
-// 修改密码 
+// 登录后修改密码 
 // 1.根据id查询数据库密码对比（bcryptjs.compareSync）前端传过来的原密码 
 // 2.对比一致保存新密码（bcryptjs.hashSync）
 exports.updatePassword = (req, res) => {
@@ -88,14 +90,14 @@ exports.updatePassword = (req, res) => {
   const sql = 'select * from users where id = ?'
   db.query(sql, id, (err, results) => {
     if (err) return res.cc(err)
-    const compareResult = bcryptjs.compareSync(req.body.password,results[0].password)
-    if(!compareResult) return res.send({
-      status:1,
-      message:"原密码错误"
+    const compareResult = bcryptjs.compareSync(req.body.password, results[0].password)
+    if (!compareResult) return res.send({
+      status: 1,
+      message: "原密码错误"
     })
-    const newPassword = bcryptjs.hashSync(req.body.newPassword)
+    const newPassword = bcryptjs.hashSync(req.body.newPassword, 10)
     const sql1 = 'update users set password = ? where id = ?'
-    db.query(sql1, [newPassword,id], (err, results) => {
+    db.query(sql1, [newPassword, id], (err, results) => {
       if (err) return res.cc(err)
       if (results.affectedRows == 1) {
         res.send({
@@ -112,7 +114,7 @@ exports.updateName = (req, res) => {
   const id = req.query.id
   const name = req.body.name
   const sql = 'update users set name = ? where id = ?'
-  db.query(sql, [name,id], (err, results) => {
+  db.query(sql, [name, id], (err, results) => {
     if (err) return res.cc(err)
     if (results.affectedRows == 1) {
       res.send({
@@ -128,7 +130,7 @@ exports.updateGender = (req, res) => {
   const id = req.query.id
   const gender = req.body.gender
   const sql = 'update users set gender = ? where id = ?'
-  db.query(sql, [gender,id], (err, results) => {
+  db.query(sql, [gender, id], (err, results) => {
     if (err) return res.cc(err)
     if (results.affectedRows == 1) {
       res.send({
@@ -144,7 +146,7 @@ exports.updateEmail = (req, res) => {
   const id = req.query.id
   const email = req.body.email
   const sql = 'update users set email = ? where id = ?'
-  db.query(sql, [email,id], (err, results) => {
+  db.query(sql, [email, id], (err, results) => {
     if (err) return res.cc(err)
     if (results.affectedRows == 1) {
       res.send({
@@ -152,5 +154,59 @@ exports.updateEmail = (req, res) => {
         message: "修改成功"
       })
     }
+  })
+}
+
+// 登录前修改密码
+// 1.验证账号和邮箱是否和数据库中一致
+exports.verifyAccount = (req, res) => {
+  const { account, email } = req.body
+  const sql = 'select * from users where account = ?'
+  db.query(sql, account, (err, results) => {
+    if (err) return res.cc(err)
+    if (results.length < 1) {
+      return res.send({
+        status: 1,
+        message: "查询失败，账号错误"
+      })
+    }
+    if (!results[0].email) {
+      return res.send({
+        status: 1,
+        message: "查询失败，邮箱不存在"
+      })
+    }
+    
+    if (results[0].email == email) {
+      res.send({
+        status: 0,
+        message: "查询成功",
+        id:results[0].id
+      })
+    } else {
+      res.send({
+        status: 1,
+        message: "查询失败，邮箱错误"
+      })
+    }
+  })
+}
+
+// 2.重置密码
+exports.resetPassword = (req, res) => {
+  const newPassword = bcryptjs.hashSync(req.body.newPassword, 10)
+  const sql = 'update users set password = ? where id = ?'
+  db.query(sql, [newPassword, req.body.id], (err, results) => {
+    if (err) return res.cc(err)
+    if (results.affectedRows == 1) {
+      return res.send({
+        status: 0,
+        message: "修改成功"
+      })
+    }
+    res.send({
+      status: 1,
+      message: "账号不存在"
+    })
   })
 }

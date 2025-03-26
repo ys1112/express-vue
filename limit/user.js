@@ -4,6 +4,9 @@ const joi = require('joi')
 // 定义姓名，性别，邮箱校验规则
 const id = joi.string().pattern(/^\d+$/).required()
 
+// alphanum代表 a-z A-Z 0-9
+const account = joi.string().alphanum().min(6).max(12).required()
+
 const name = joi.string().pattern(/^(?:[\u4e00-\u9fa5]+)(?:●[\u4e00-\u9fa5]+)*$|^[a-zA-Z0-9]+\s?[\.·\-()a-zA-Z]*[a-zA-Z]+$/).required()
 
 const gender = joi.string().pattern(/^男$|^女$/).required()
@@ -42,7 +45,13 @@ exports.password_limit = {
     id
   },
   body: {
-    password:password,
+    password,
+    newPassword:password
+  }
+}
+exports.reset_limit = {
+  body: {
+    id,
     newPassword:password
   }
 }
