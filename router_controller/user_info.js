@@ -15,25 +15,25 @@ exports.uploadAvatar = (req, res) => {
   // 生成唯一标识
   const only_id = crypto.randomUUID()
   // 保存上传图片的生成的名称filename
-  let fileName = req.files[0].filename
+  const fileName = req.files[0].filename
   // 服务器表中的文件名
   // Buffer.from‌是Node.js中用于将字符串、数组或其他Buffer对象转换为Buffer对象的方法。
   // latin1是 ISO 8859-1 单字节编码的别名，支持西欧语言（如英语、法语、德语、西班牙语等）。
   // .toString('utf-8')防止乱码
-  let originalName = Buffer.from(req.files[0].originalname, 'latin1').toString("utf8")
+  const originalName = Buffer.from(req.files[0].originalname, 'latin1').toString("utf8")
   // 更换文件在服务器中的名称
-  fs.renameSync('./public/uploads/' + fileName, './public/uploads/' + originalName)
+  fs.renameSync('./public/uploads/' + fileName, './public/uploads/' + req.query.id + originalName)
   // sql语句，上传头像到数据库
   const sql = 'insert into images set ?'
   db.query(sql, {
-    image_url: `http://127.0.0.1:3001/uploads/${originalName}`,
+    image_url: `http://127.0.0.1:3001/uploads/${req.query.id + originalName}`,
     only_id
   }, (err, results) => {
     if (err) return res.cc(err)
     res.send({
       only_id,
       status: 0,
-      url: `http://127.0.0.1:3001/uploads/${originalName}`
+      url: `http://127.0.0.1:3001/uploads/${req.query.id + originalName}`
     })
   })
 }
@@ -78,7 +78,8 @@ exports.getUserInfo = (req, res) => {
         message: '用户不存在'
       })
     }
-    res.send(results)
+    results[0].password = ''
+    res.send(results[0])
   })
 }
 
@@ -176,12 +177,12 @@ exports.verifyAccount = (req, res) => {
         message: "查询失败，邮箱不存在"
       })
     }
-    
+
     if (results[0].email == email) {
       res.send({
         status: 0,
         message: "查询成功",
-        id:results[0].id
+        id: results[0].id
       })
     } else {
       res.send({

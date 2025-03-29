@@ -15,7 +15,7 @@ const multer = require('multer')
 app.use(cors())
 
 // 在server服务端下新建一个public文件夹，在public下新建一个upload文件夹用于存放图片
-const upload = multer({ dest: './public/uploads' })
+const upload = multer({dest: './public/uploads'})
 app.use(upload.any())
 // 静态托管
 app.use(express.static('./public'))
@@ -56,9 +56,12 @@ const loginRouter = require('./routes/login');
 // 引入userinfo路由文件
 const userInfoRouter = require('./routes/user_info');
 
+// 引入setting路由文件
+const settingRouter = require('./routes/setting');
 
 app.use('/api', loginRouter);
 app.use('/user', userInfoRouter);
+app.use('/setting', settingRouter);
 const Joi = require('joi')
 // 对不符合joi规则的情况进行报错
 app.use((err, req, res, next) => {
