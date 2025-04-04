@@ -61,7 +61,7 @@ const settingRouter = require('./routes/setting');
 
 app.use('/api', loginRouter);
 app.use('/user', userInfoRouter);
-app.use('/setting', settingRouter);
+app.use('/set', settingRouter);
 const Joi = require('joi')
 // 对不符合joi规则的情况进行报错
 app.use((err, req, res, next) => {

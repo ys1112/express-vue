@@ -8,7 +8,9 @@ const router = express.Router();
 const settingController = require('../router_controller/setting')
 // 导入路由处理模块
 router.post('/setSwiper', settingController.setSwiper)
+router.get('/getAllSwiper', settingController.getAllSwiper)
 router.post('/setCompanyInfo', settingController.setCompanyInfo)
+router.get('/getCompanyInfo', settingController.getCompanyInfo)
 
 // 向外暴露路由
 module.exports = router;
