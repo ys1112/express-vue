@@ -23,6 +23,7 @@ exports.register = (req, res) => {
   const sql = 'select * from users where account = ?'
   // 第一个参数sql是执行语句 第二个是前端传过来的参数 第三个是一个函数用于处理结果
   db.query(sql, reginfo.account, (err, results) => {
+    if (err) return res.cc(err)
     if (results.length > 0) {
       return res.send({
         status: 1,
@@ -46,6 +47,7 @@ exports.register = (req, res) => {
       create_time,
       status: 0
     }, (err, results) => {
+      if (err) return res.cc(err)
       // 判断插入状态 affectedRows为影响的行数
       if (results.affectedRows !== 1) {
         return res.send({

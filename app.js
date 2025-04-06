@@ -59,9 +59,13 @@ const userInfoRouter = require('./routes/user_info');
 // 引入setting路由文件
 const settingRouter = require('./routes/setting');
 
+// 引入product路由文件
+const productRouter = require('./routes/product');
+
 app.use('/api', loginRouter);
 app.use('/user', userInfoRouter);
 app.use('/set', settingRouter);
+app.use('/pro', productRouter);
 const Joi = require('joi')
 // 对不符合joi规则的情况进行报错
 app.use((err, req, res, next) => {

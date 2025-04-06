@@ -216,7 +216,7 @@ exports.resetPassword = (req, res) => {
 exports.setDepartment = (req, res) => {
   const set_value = req.body.department
   const sql = `update setting set set_value = ? where set_name = ?`
-  db.query(sql, [set_value,'department_category'], (err, results) => {
+  db.query(sql, [set_value, 'department_category'], (err, results) => {
     if (err) return res.cc(err)
     if (results.affectedRows == 1) {
       res.send({
@@ -234,7 +234,7 @@ exports.getDepartment = (req, res) => {
     if (err) return res.cc(err)
     res.send({
       status: 0,
-      results:results[0],
+      results: results[0],
     })
   })
 }
@@ -243,7 +243,7 @@ exports.getDepartment = (req, res) => {
 exports.setProduct = (req, res) => {
   const set_value = req.body.product
   const sql = `update setting set set_value = ? where set_name = ?`
-  db.query(sql, [set_value,'product_category'], (err, results) => {
+  db.query(sql, [set_value, 'product_category'], (err, results) => {
     if (err) return res.cc(err)
     if (results.affectedRows == 1) {
       res.send({
@@ -261,7 +261,7 @@ exports.getProduct = (req, res) => {
     if (err) return res.cc(err)
     res.send({
       status: 0,
-      results:results[0],
+      results: results[0],
     })
   })
 }
@@ -289,6 +289,7 @@ exports.createAdmin = (req, res) => {
   const sql = 'select * from users where account = ?'
   // 第一个参数sql是执行语句 第二个是前端传过来的参数 第三个是一个函数用于处理结果
   db.query(sql, account, (err, results) => {
+    if (err) return res.cc(err)
     // 第二步  判断账号是否存在数据表中
     if (results.length > 0) {
       return res.send({
@@ -315,16 +316,17 @@ exports.createAdmin = (req, res) => {
     // 第四步  把账号和密码插入到users表里面
     const sql1 = 'insert into users set ?'
     db.query(sql1, createInfo, (err, results) => {
+      if (err) return res.cc(err)
       // 判断插入状态 affectedRows为影响的行数
-      if (results.affectedRows !== 1) {
+      if (results.affectedRows == 1) {
         return res.send({
-          status: 1,
-          message: '添加管理员失败'
+          status: 0,
+          message: '创建管理员成功'
         })
       }
       return res.send({
-        status: 0,
-        message: '创建管理员成功'
+        status: 1,
+        message: '添加管理员失败'
       })
     })
   })
@@ -407,7 +409,7 @@ exports.getUserList = (req, res) => {
     }
     res.send({
       status: 0,
-      message: '查询用户列表表成功',
+      message: '查询用户列表成功',
       results: results
     })
   })
