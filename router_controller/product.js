@@ -62,40 +62,107 @@ exports.createProduct = (req, res) => {
     product_create_person,
     in_memo,
   } = req.body
-  // 创建时间
-  const product_create_time = new Date()
-  // 状态
-  const product_out_status = 0
-  // 总价
-  const product_all_price = product_single_price * product_inwarehouse_number
-  // 商品是否紧急
-  const product_status = getProductStatus(product_inwarehouse_number)
-  const createInfo = {
-    product_id,
-    product_name,
-    product_category,
-    product_unit,
-    product_inwarehouse_number,
-    product_single_price,
-    product_all_price,
-    product_create_person,
-    product_create_time,
-    in_memo,
-    product_out_status,
-    product_status
-  }
-  const sql = 'insert into products set ?'
-  db.query(sql, createInfo, (err, results) => {
+  // 防止入库编号重复
+  const isRepeatSql = 'select * from products where product_id = ?'
+  db.query(isRepeatSql, product_id, (err, results) => {
     if (err) return res.cc(err)
-    if (results.affectedRows == 1) {
+    if (results.length > 0) {
       return res.send({
-        status: 0,
-        message: '添加产品成功'
+        status: 1,
+        message: '入库编号已存在'
       })
     } else {
-      res.send({
+      // 创建时间
+      const product_create_time = new Date()
+      // 状态
+      const product_out_status = 0
+      // 总价
+      const product_all_price = product_single_price * product_inwarehouse_number
+      // 商品是否紧急
+      const product_status = getProductStatus(product_inwarehouse_number)
+      const createInfo = {
+        product_id,
+        product_name,
+        product_category,
+        product_unit,
+        product_inwarehouse_number,
+        product_single_price,
+        product_all_price,
+        product_create_person,
+        product_create_time,
+        in_memo,
+        product_out_status,
+        product_status
+      }
+      const sql = 'insert into products set ?'
+      db.query(sql, createInfo, (err, results) => {
+        if (err) return res.cc(err)
+        if (results.affectedRows == 1) {
+          return res.send({
+            status: 0,
+            message: '添加产品成功'
+          })
+        } else {
+          res.send({
+            status: 1,
+            message: '添加产品失败'
+          })
+        }
+      })
+    }
+  })
+
+}
+
+// 申请产品出库
+exports.applyDelivery = (req, res) => {
+  const {
+    id,
+    product_out_id,
+    product_out_number,
+    product_out_apply_person,
+    apply_memo,
+  } = req.body
+  const isRepeatSql = 'select * from products where product_out_id = ?'
+  db.query(isRepeatSql, product_out_id, (err, results) => {
+    if (err) return res.cc(err)
+    if (results.length > 0) {
+      return res.send({
         status: 1,
-        message: '添加产品失败'
+        message: '出库编号已存在'
+      })
+    } else {
+      const sql = 'select * from products where id = ?'
+      db.query(sql, id, (err, results) => {
+        if (err) return res.cc(err)
+        if (product_out_number > results[0].product_inwarehouse_number) {
+          return res.send({
+            status: 1,
+            message: '出库数量错误'
+          })
+        }
+        const product_out_price = results[0].product_single_price * product_out_number
+        const product_apply_date = new Date()
+        const product_out_status = 1
+        const applyInfo = {
+          product_out_id,
+          product_out_number,
+          product_out_apply_person,
+          apply_memo,
+          product_out_price,
+          product_apply_date,
+          product_out_status
+        }
+        const sql1 = 'update products set ? where id = ?'
+        db.query(sql1, [applyInfo, id], (err, results) => {
+          if (err) return res.cc(err)
+          if (results.affectedRows == 1) {
+            res.send({
+              status: 0,
+              message: "申请出库成功"
+            })
+          }
+        })
       })
     }
   })
@@ -175,50 +242,6 @@ exports.searchProducts = (req, res) => {
   })
 }
 
-// 申请产品出库
-exports.applyDelivery = (req, res) => {
-  const {
-    id,
-    product_out_id,
-    product_out_number,
-    product_out_apply_person,
-    apply_memo,
-  } = req.body
-  const sql = 'select * from products where id = ?'
-  db.query(sql, id, (err, results) => {
-    if (err) return res.cc(err)
-    if (product_out_number > results[0].product_inwarehouse_number) {
-      return res.send({
-        status: 1,
-        message: '出库数量错误'
-      })
-    }
-    const product_out_price = results[0].product_single_price * product_out_number
-    const product_apply_date = new Date()
-    const product_out_status = 1
-    const applyInfo = {
-      product_out_id,
-      product_out_number,
-      product_out_apply_person,
-      apply_memo,
-      product_out_price,
-      product_apply_date,
-      product_out_status
-    }
-    const sql1 = 'update products set ? where id = ?'
-    db.query(sql1, [applyInfo, id], (err, results) => {
-      if (err) return res.cc(err)
-      if (results.affectedRows == 1) {
-        res.send({
-          status: 0,
-          message: "申请出库成功"
-        })
-      }
-    })
-  })
-
-}
-
 // 根据id删除产品
 exports.deleteProduct = (req, res) => {
   const id = req.body.id
@@ -241,8 +264,9 @@ exports.getApplyProducts = (req, res) => {
     from products
     where
     product_out_status = ?
+    or product_out_status = ?
     `
-  const queryInfo = [1]
+  const queryInfo = [1, 2]
   db.query(sql, queryInfo, (err, results) => {
     if (err) return res.cc(err)
     res.send({
@@ -261,7 +285,7 @@ exports.searchApplyProducts = (req, res) => {
     from products 
     where 
     product_out_status = ?
-    and product_id like ?
+    and product_out_id like ?
     `
   const queryInfo = [1, `%${search_value}%`]
   db.query(sql, queryInfo, (err, results) => {
@@ -278,13 +302,13 @@ exports.searchApplyProducts = (req, res) => {
 exports.approveApply = (req, res) => {
   const {
     id,
-    audit_person,
+    product_out_audit_person,
     audit_memo,
   } = req.body
   const sql = 'select * from products where id = ?'
   db.query(sql, id, (err, results) => {
     if (err) return res.cc(err)
-    const {
+    let {
       product_out_id,
       product_inwarehouse_number,
       product_name,
@@ -294,12 +318,10 @@ exports.approveApply = (req, res) => {
       product_out_price,
       product_out_apply_person,
     } = results[0]
-    const product_out_audit_person = audit_person
     const product_audit_time = new Date()
-    const product_out_status = 2
     const agreeInfo = {
       product_out_id,
-      product_out_name:product_name,
+      product_out_name: product_name,
       product_out_number,
       product_single_price,
       product_out_price,
@@ -307,46 +329,43 @@ exports.approveApply = (req, res) => {
       product_audit_time, // 新加
       product_out_audit_person, //新加
       audit_memo, // 新加
-      product_out_status, // 新加
     }
     const sql1 = 'insert into out_products set ?'
-    db.query(sql1, [agreeInfo, id], (err, results) => {
+    db.query(sql1, [agreeInfo], (err, results) => {
       if (err) return res.cc(err)
       if (results.affectedRows == 1) {
-        res.send({
-          status: 0,
-          message: "同意申请成功"
+        // 1.重置products申请部分 
+        // 2.库存总数减去出库数量，总价更新
+        // 3.product_out_status 更新为0 
+        product_inwarehouse_number = product_inwarehouse_number - product_out_number
+        product_all_price = product_inwarehouse_number * product_single_price
+        const product_status = getProductStatus(product_inwarehouse_number)
+        const updateInfo = {
+          product_inwarehouse_number,
+          product_all_price,
+          product_status,
+          product_out_id: null,
+          product_out_number: null,
+          product_out_apply_person: null,
+          product_out_price: null,
+          product_apply_date: null,
+          product_out_status: 0,
+          apply_memo: null,
+          product_out_audit_person: null,
+          audit_memo: null,
+        }
+
+        const sql2 = 'update products set ? where id = ?'
+        db.query(sql2, [updateInfo, id], (err, results) => {
+          if (err) return res.cc(err)
+          if (results.affectedRows == 1) {
+            res.send({
+              status: 0,
+              message: "同意出库申请成功"
+            })
+          }
         })
       }
-      // 1.重置products申请部分 
-      // 2.库存总数减去出库数量，总价更新
-      // 3.product_out_status 更新为0 
-      product_inwarehouse_number = product_inwarehouse_number - product_out_number
-      product_all_price = product_inwarehouse_number * product_single_price
-      const product_status = getProductStatus(product_inwarehouse_number)
-      const updateInfo = {
-        product_inwarehouse_number,
-        product_all_price,
-        product_status,
-        product_out_id: null,
-        product_out_number: null,
-        product_out_price: null,
-        product_out_apply_person: null,
-        product_apply_date: null,
-        apply_memo: null,
-        product_out_status: 0,
-      }
-      const sql2 = 'update products set ? where id = ?'
-      db.query(sql2, [updateInfo, id], (err, results) => {
-        if (err) return res.cc(err)
-        if (results.affectedRows == 1) {
-          res.send({
-            status: 0,
-            message: "出库更新产品信息成功"
-          })
-        }
-      })
-
     })
   })
 }
@@ -355,69 +374,72 @@ exports.approveApply = (req, res) => {
 exports.rejectApply = (req, res) => {
   const {
     id,
-    audit_person,
+    product_out_audit_person,
     audit_memo,
   } = req.body
-  const sql = 'select * from products where id = ?'
-  db.query(sql, id, (err, results) => {
+  const product_out_status = 2
+  const rejectInfo = {
+    product_out_status,
+    product_out_audit_person,
+    audit_memo,
+  }
+  const sql2 = 'update products set ? where id = ?'
+  db.query(sql2, [rejectInfo, id], (err, results) => {
     if (err) return res.cc(err)
-    const {
-      product_out_id,
-      product_name,
-      product_inwarehouse_number,
-      product_single_price,
-      product_all_price,
-      product_out_number,
-      product_out_price,
-      product_out_apply_person,
-    } = results[0]
-    const product_out_audit_person = audit_person
-    const product_audit_time = new Date()
-    const product_out_status = 3
-    const agreeInfo = {
-      product_out_id,
-      product_out_name:product_name,
-      product_out_number,
-      product_single_price,
-      product_out_price,
-      product_out_apply_person,
-      product_audit_time, // 新加
-      product_out_audit_person, //新加
-      audit_memo, // 新加
-      product_out_status, // 新加
-    }
-    const sql1 = 'insert into out_products set ?'
-    db.query(sql1, [agreeInfo, id], (err, results) => {
-      if (err) return res.cc(err)
-      if (results.affectedRows == 1) {
-        res.send({
-          status: 0,
-          message: "驳回申请成功"
-        })
-      }
-      // 1.重置products申请部分 
-      // 3.product_out_status 更新为0 
-      const updateInfo = {
-        product_out_id: null,
-        product_out_number: null,
-        product_out_price: null,
-        product_out_apply_person: null,
-        product_apply_date: null,
-        apply_memo: null,
-        product_out_status: 0,
-      }
-      const sql2 = 'update products set ? where id = ?'
-      db.query(sql2, [updateInfo, id], (err, results) => {
-        if (err) return res.cc(err)
-        if (results.affectedRows == 1) {
-          res.send({
-            status: 0,
-            message: "出库更新产品信息成功"
-          })
-        }
+    if (results.affectedRows == 1) {
+      res.send({
+        status: 0,
+        message: "出库更新产品信息成功"
       })
+    }
+  })
+}
 
-    })
+// 撤销出库申请
+exports.cancelApply = (req, res) => {
+  const {
+    id
+  } = req.body
+  const updateInfo = {
+    product_out_id: null,
+    product_out_number: null,
+    product_out_apply_person: null,
+    product_out_price: null,
+    product_apply_date: null,
+    product_out_status: 0,
+    apply_memo: null,
+    product_out_audit_person: null,
+    audit_memo: null,
+  }
+  const sql = 'update products set ? where id = ?'
+  db.query(sql, [updateInfo, id], (err, results) => {
+    if (err) return res.cc(err)
+    if (results.affectedRows == 1) {
+      res.send({
+        status: 0,
+        message: "撤销申请成功"
+      })
+    }
+  })
+}
+
+// 再次提交出库申请
+exports.resubmit = (req, res) => {
+  const {
+    id
+  } = req.body
+  const updateInfo = {
+    product_out_status: 1,
+  }
+  const sql = 'update products set ? where id = ?'
+  db.query(sql, [updateInfo, id], (err, results) => {
+    if (err) return res.cc(err)
+    if (results.affectedRows == 1) {
+      res.send({
+        status: 0,
+        message: "提交申请成功"
+      })
+    }
   })
 }
 
@@ -438,13 +460,13 @@ exports.getOutProducts = (req, res) => {
 }
 
 // 查询已出库的产品列表,支持模糊查询product_id
-exports.searchOutProducts = (req, res) => {
+exports.searchOutProduct = (req, res) => {
   const search_value = req.body.search_value
   // 如果传入product_id，模糊查询product_id
   const sql = `select * 
     from out_products
     where
-    product_out_id = ?
+    product_out_id like ?
     `
   const queryInfo = [`%${search_value}%`]
   db.query(sql, queryInfo, (err, results) => {
@@ -454,5 +476,20 @@ exports.searchOutProducts = (req, res) => {
       message: '搜索已出库列表成功',
       results
     })
+  })
+}
+
+// 根据id删除已出库产品
+exports.deleteDelivery = (req, res) => {
+  const id = req.body.id
+  const sql = 'delete from out_products where id = ?'
+  db.query(sql, id, (err, results) => {
+    if (err) return res.cc(err)
+    if (results.affectedRows == 1) {
+      res.send({
+        status: 0,
+        message: "删除已出库记录成功"
+      })
+    }
   })
 }
