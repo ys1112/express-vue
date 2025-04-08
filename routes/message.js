@@ -45,6 +45,9 @@ router.delete('/deleteRecycleMsg', messageController.deleteRecycleMsg)
 // 获取部门消息
 router.post('/getDepartmentMsg', messageController.getDepartmentMsg)
 
+// 更新点击数
+router.post('/updateClick', messageController.updateClick)
+
 
 // 向外暴露路由
 module.exports = router;

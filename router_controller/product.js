@@ -208,7 +208,7 @@ exports.updateProduct = (req, res) => {
 // 获取所有产品列表
 exports.getProducts = (req, res) => {
   // 若不传值，则查询所有产品
-  sql = `select * 
+  const sql = `select * 
     from products
     `
   db.query(sql, (err, results) => {

@@ -65,11 +65,15 @@ const productRouter = require('./routes/product');
 // 引入message路由文件
 const messageRouter = require('./routes/message');
 
+// 引入files路由文件
+const filesRouter = require('./routes/files');
+
 app.use('/api', loginRouter);
 app.use('/user', userInfoRouter);
 app.use('/set', settingRouter);
 app.use('/pro', productRouter);
 app.use('/msg', messageRouter);
+app.use('/file', filesRouter);
 const Joi = require('joi')
 // 对不符合joi规则的情况进行报错
 app.use((err, req, res, next) => {

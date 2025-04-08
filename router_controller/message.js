@@ -131,8 +131,13 @@ exports.updateSysMsg = (req, res) => {
 exports.deleteMsg = (req, res) => {
   const id = req.body.id
   const message_status = 1
-  const sql = 'update message set message_status = ? where id = ?'
-  db.query(sql, [message_status, id], (err, results) => {
+  const message_delete_time = new Date()
+  const deleteInfo = {
+    message_delete_time,
+    message_status
+  }
+  const sql = 'update message set ? where id = ?'
+  db.query(sql, [deleteInfo, id], (err, results) => {
     if (err) return res.cc(err)
     if (results.affectedRows == 1) {
       res.send({
@@ -145,7 +150,7 @@ exports.deleteMsg = (req, res) => {
 
 // 获取所有公司公告信息列表
 exports.getCorpMsg = (req, res) => {
-  sql = `select * 
+  const sql = `select * 
     from message
     where message_status = ?
     and message_category = ?
@@ -170,14 +175,14 @@ exports.filterMsg = (req, res) => {
   } = req.body
   const message_status = 0
   const message_category = '公司公告'
-  sql = `select * 
+  const sql = `select * 
     from message
     where message_publish_department like ?
     and message_level like ?
     and message_status = ?
     and message_category = ?
     `
-  db.query(sql, [`%${message_publish_department}%`, `%${message_level}%`,message_status,message_category], (err, results) => {
+  db.query(sql, [`%${message_publish_department}%`, `%${message_level}%`, message_status, message_category], (err, results) => {
     if (err) return res.cc(err)
     res.send({
       status: 0,
@@ -191,7 +196,7 @@ exports.filterMsg = (req, res) => {
 
 // 获取所有系统信息列表
 exports.getSysMsg = (req, res) => {
-  sql = `select * 
+  const sql = `select * 
     from message
     where message_status = ?
     and message_category = ?
@@ -210,7 +215,7 @@ exports.getSysMsg = (req, res) => {
 
 // 获取所有回收站信息列表
 exports.getRecycleMsg = (req, res) => {
-  sql = `select * 
+  const sql = `select * 
     from message
     where message_status = ?
     `
@@ -229,8 +234,12 @@ exports.getRecycleMsg = (req, res) => {
 exports.restoreMsg = (req, res) => {
   const id = req.body.id
   const message_status = 0
-  const sql = 'update message set message_status = ? where id = ?'
-  db.query(sql, [message_status, id], (err, results) => {
+  const restoreInfo = {
+    message_status,
+    message_delete_time: null
+  }
+  const sql = 'update message set ? where id = ?'
+  db.query(sql, [restoreInfo, id], (err, results) => {
     if (err) return res.cc(err)
     if (results.affectedRows == 1) {
       res.send({
@@ -256,10 +265,33 @@ exports.deleteRecycleMsg = (req, res) => {
   })
 }
 
+// 更新点击数
+exports.updateClick = (req, res) => {
+  const {
+    id
+  } = req.body
+  const sql = 'select * from message where id = ?'
+  db.query(sql, id, (err, results) => {
+    if (err) return res.cc(err)
+    const message_click_number = results[0].message_click_number * 1 + 1
+    const sql1 = 'update message set message_click_number = ? where id = ?'
+    db.query(sql1, [message_click_number, id], (err, results) => {
+      if (err) return res.cc(err)
+      if (results.affectedRows == 1) {
+        res.send({
+          status: 0,
+          message_click_number,
+          message: "点击数增加"
+        })
+      }
+    })
+  })
+}
+
 // 获取部门消息
 exports.getDepartmentMsg = (req, res) => {
   const message_publish_department = req.body.department
-  sql = `select * 
+  const sql = `select * 
     from message
     where message_status = ?
     and message_publish_department = ?
