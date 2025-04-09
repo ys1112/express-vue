@@ -150,82 +150,94 @@ exports.deleteMsg = (req, res) => {
 
 // 获取所有公司公告信息列表
 exports.getCorpMsg = (req, res) => {
-  const sql = `select * 
-    from message
-    where message_status = ?
-    and message_category = ?
-    `
-  const message_status = 0
-  const message_category = '公司公告'
-  db.query(sql, [message_status, message_category], (err, results) => {
+  const pageNum = Number(req.query.pageNum) || 1; // 当前页码
+  const pageSize = Number(req.query.pageSize) || 10; // 每页条数
+  const offset = (pageNum - 1) * pageSize
+  const department = `%${req.query.department || ''}%`
+  const messageLevel = `%${req.query.messageLevel || ''}%`
+  const queryInfo = [0, '公司公告', department, messageLevel]
+  let sql = `select * 
+  from message 
+  where 
+  message_status = ? 
+  and message_category = ?
+  and message_publish_department like ?
+  and message_level like ?
+  `
+  const limit = ` limit ? offset ?`
+
+  db.query(sql, queryInfo, (err, results) => {
     if (err) return res.cc(err)
-    res.send({
-      status: 0,
-      message: '获取公司公告列表成功',
-      results
+    const total = results.length || 0
+    queryInfo.push(pageSize, offset)
+    sql += limit
+    db.query(sql, queryInfo, (err, results) => {
+      if (err) return res.cc(err)
+      res.send({
+        status: 0,
+        message: '获取公司公告列表成功',
+        results,
+        total
+      })
     })
   })
 }
-
-// 筛选公司消息
-exports.filterMsg = (req, res) => {
-  const {
-    message_publish_department,
-    message_level
-  } = req.body
-  const message_status = 0
-  const message_category = '公司公告'
-  const sql = `select * 
-    from message
-    where message_publish_department like ?
-    and message_level like ?
-    and message_status = ?
-    and message_category = ?
-    `
-  db.query(sql, [`%${message_publish_department}%`, `%${message_level}%`, message_status, message_category], (err, results) => {
-    if (err) return res.cc(err)
-    res.send({
-      status: 0,
-      message: '筛选公司公告消息成功',
-      results
-    })
-  })
-}
-
-
 
 // 获取所有系统信息列表
 exports.getSysMsg = (req, res) => {
-  const sql = `select * 
+  const pageNum = Number(req.query.pageNum) || 1; // 当前页码
+  const pageSize = Number(req.query.pageSize) || 10; // 每页条数
+  const offset = (pageNum - 1) * pageSize
+  const limit = ` limit ? offset ?`
+  let queryInfo = [0, '系统消息']
+  let sql = `select * 
     from message
     where message_status = ?
     and message_category = ?
     `
-  const message_status = 0
-  const message_category = '系统消息'
-  db.query(sql, [message_status, message_category], (err, results) => {
+  db.query(sql, queryInfo, (err, results) => {
     if (err) return res.cc(err)
-    res.send({
-      status: 0,
-      message: '获取系统消息列表成功',
-      results
+    const total = results.length || 0
+    queryInfo.push(pageSize, offset)
+    sql += limit
+    db.query(sql, queryInfo, (err, results) => {
+      if (err) return res.cc(err)
+      res.send({
+        status: 0,
+        message: '获取系统消息列表成功',
+        total,
+        results
+      })
     })
   })
 }
 
 // 获取所有回收站信息列表
 exports.getRecycleMsg = (req, res) => {
-  const sql = `select * 
+  const pageNum = Number(req.query.pageNum) || 1; // 当前页码
+  const pageSize = Number(req.query.pageSize) || 10; // 每页条数
+  const offset = (pageNum - 1) * pageSize
+  const keyword = `%${req.query.keyword || ''}%`
+  const queryInfo = [1, keyword]
+  const limit = ` limit ? offset ?`
+  let sql = `select * 
     from message
     where message_status = ?
+    and message_title like ?
     `
-  const message_status = 1
-  db.query(sql, [message_status], (err, results) => {
+  db.query(sql, queryInfo, (err, results) => {
     if (err) return res.cc(err)
-    res.send({
-      status: 0,
-      message: '获取回收站信息列表成功',
-      results
+    const total = results.length || 0
+    queryInfo.push(pageSize, offset)
+    sql += limit
+    db.query(sql, queryInfo, (err, results) => {
+      if (err) return res.cc(err)
+      res.send({
+        status: 0,
+        message: '获取回收站信息列表成功',
+        total,
+        results
+      })
     })
   })
 }

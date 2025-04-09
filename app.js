@@ -68,12 +68,21 @@ const messageRouter = require('./routes/message');
 // 引入files路由文件
 const filesRouter = require('./routes/files');
 
+// 引入loginLog路由文件
+const loginLogRouter = require('./routes/login_log');
+
+// 引入operateLog路由文件
+const operateLogRouter = require('./routes/operate_log');
+
+
 app.use('/api', loginRouter);
 app.use('/user', userInfoRouter);
 app.use('/set', settingRouter);
 app.use('/pro', productRouter);
 app.use('/msg', messageRouter);
 app.use('/file', filesRouter);
+app.use('/login_log', loginLogRouter);
+app.use('/operate_log', operateLogRouter);
 const Joi = require('joi')
 // 对不符合joi规则的情况进行报错
 app.use((err, req, res, next) => {

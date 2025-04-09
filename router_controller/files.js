@@ -16,10 +16,10 @@ exports.uploadFile = (req, res) => {
   // 保存上传图片的生成的名称filename
   const fileName = req.files[0].filename
   let fileSize = req.files[0].size * 1
-  if (fileSize / 1024 /1024 > 1) {
-    fileSize = (fileSize/1024 / 1024).toFixed(2) + 'MB'
+  if (fileSize / 1024 / 1024 > 1) {
+    fileSize = (fileSize / 1024 / 1024).toFixed(2) + 'MB'
   } else {
-    fileSize = (fileSize/1024).toFixed(2) + 'KB'
+    fileSize = (fileSize / 1024).toFixed(2) + 'KB'
   }
   // 服务器表中的文件名
   const originalName = Buffer.from(req.files[0].originalname, 'latin1').toString("utf8")
@@ -75,34 +75,30 @@ exports.deleteFile = (req, res) => {
 
 // 获取文件列表
 exports.getFiles = (req, res) => {
-  const sql = `select * 
+  const pageNum = Number(req.query.pageNum) || 1; // 当前页码
+  const pageSize = Number(req.query.pageSize) || 10; // 每页条数
+  const offset = (pageNum - 1) * pageSize
+  const keyword = `%${req.query.keyword || ''}%`
+  const queryInfo = [keyword]
+  const limit = ` limit ? offset ?`
+  let sql = `select * 
     from files
+    where
+    file_name like ?
     `
-  db.query(sql, (err, results) => {
+  db.query(sql, queryInfo, (err, results) => {
     if (err) return res.cc(err)
-    res.send({
-      status: 0,
-      message: '获取文件列表成功',
-      results
-    })
-  })
-}
-
-// 筛选文件
-exports.filterFiles = (req, res) => {
-  const {
-    file_name
-  } = req.body
-  const sql = `select * 
-    from files
-    where file_name like ?
-    `
-  db.query(sql, [`%${file_name}%`], (err, results) => {
-    if (err) return res.cc(err)
-    res.send({
-      status: 0,
-      message: '搜索文件成功',
-      results
+    const total = results.length || 0
+    queryInfo.push(pageSize, offset)
+    sql += limit
+    db.query(sql, queryInfo, (err, results) => {
+      if (err) return res.cc(err)
+      res.send({
+        status: 0,
+        message: '获取文件列表成功',
+        total,
+        results
+      })
     })
   })
 }

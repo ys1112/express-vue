@@ -207,40 +207,35 @@ exports.updateProduct = (req, res) => {
 
 // 获取所有产品列表
 exports.getProducts = (req, res) => {
-  // 若不传值，则查询所有产品
-  const sql = `select * 
-    from products
-    `
-  db.query(sql, (err, results) => {
-    if (err) return res.cc(err)
-    res.send({
-      status: 0,
-      message: '查询产品列表成功',
-      results
-    })
-  })
-}
-
-// product_id查询产品列表
-exports.searchProducts = (req, res) => {
-  const search_value = req.body.search_value
-  // 如果传入product_id，模糊查询product_id
-  const sql = `select * 
-    from products 
-    where 
-    product_id like ?
-    `
-  const queryInfo = [`%${search_value}%`]
-
+  const pageNum = Number(req.query.pageNum) || 1; // 当前页码
+  const pageSize = Number(req.query.pageSize) || 10; // 每页条数
+  const offset = (pageNum - 1) * pageSize
+  const keyword = `%${req.query.keyword || ''}%`
+  const queryInfo = [keyword]
+  let sql = 'select * from products where product_id like ?'
+  const limit = ` limit ? offset ?`
+  // 查询一页10条数据
   db.query(sql, queryInfo, (err, results) => {
     if (err) return res.cc(err)
-    res.send({
-      status: 0,
-      message: '查询产品列表成功',
-      results
+    // 记录总数
+    const total = results.length || 0
+    // 追加限制
+    queryInfo.push(pageSize, offset)
+    // 修改sql语句
+    sql += limit
+    db.query(sql, queryInfo, (err, results) => {
+      if (err) return res.cc(err)
+      res.send({
+        status: 0,
+        message: '查询产品列表成功',
+        total,
+        results
+      })
     })
   })
+
 }
+
 
 // 根据id删除产品
 exports.deleteProduct = (req, res) => {
@@ -259,44 +254,60 @@ exports.deleteProduct = (req, res) => {
 
 // 获取申请中的产品列表
 exports.getApplyProducts = (req, res) => {
+  const pageNum = Number(req.query.pageNum) || 1; // 当前页码
+  const pageSize = Number(req.query.pageSize) || 10; // 每页条数
+  const keyword = `%${req.query.keyword || ''}%`
+  const offset = (pageNum - 1) * pageSize
+  const limit = ` limit ? offset ?`
   // 查询所有product_out_status为申请中的产品
-  const sql = `select * 
+  let sql = `select * 
     from products
     where
-    product_out_status = ?
-    or product_out_status = ?
-    `
-  const queryInfo = [1, 2]
-  db.query(sql, queryInfo, (err, results) => {
-    if (err) return res.cc(err)
-    res.send({
-      status: 0,
-      message: '查询申请出库列表成功',
-      results
-    })
-  })
-}
-
-// 查询申请中的产品列表,支持模糊查询product_id
-exports.searchApplyProducts = (req, res) => {
-  const search_value = req.body.search_value
-  // 如果传入product_id，模糊查询product_id
-  const sql = `select * 
-    from products 
-    where 
-    product_out_status = ?
+    (product_out_status = ?
+    or product_out_status = ?)
     and product_out_id like ?
     `
-  const queryInfo = [1, `%${search_value}%`]
+  let queryInfo = [1, 2, keyword]
+  // 查询一页10条数据
   db.query(sql, queryInfo, (err, results) => {
     if (err) return res.cc(err)
-    res.send({
-      status: 0,
-      message: '搜索申请出库列表成功',
-      results
+    // 符合要求的总数量
+    const total = results.length || 0
+    // 偏移量
+    // 追加每页数量和偏移量
+    queryInfo.push(pageSize, offset)
+    // sql追加限制
+    sql += limit
+    db.query(sql, queryInfo, (err, results) => {
+      if (err) return res.cc(err)
+      res.send({
+        status: 0,
+        message: '查询产品列表成功',
+        total,
+        results
+      })
     })
   })
+
+
+
+  // const sql = `select * 
+  //   from products
+  //   where
+  //   product_out_status = ?
+  //   or product_out_status = ?
+  //   `
+  // const queryInfo = [1, 2]
+  // db.query(sql, queryInfo, (err, results) => {
+  //   if (err) return res.cc(err)
+  //   res.send({
+  //     status: 0,
+  //     message: '查询申请出库列表成功',
+  //     results
+  //   })
+  // })
 }
+
 
 // 同意出库申请
 exports.approveApply = (req, res) => {
@@ -445,36 +456,27 @@ exports.resubmit = (req, res) => {
 
 // 获取已出库的产品列表
 exports.getOutProducts = (req, res) => {
-  // 若不传值，则查询所有product_out_status为申请中的产品
-  const sql = `select * 
-    from out_products
-    `
-  db.query(sql, (err, results) => {
-    if (err) return res.cc(err)
-    res.send({
-      status: 0,
-      message: '查询已出库列表成功',
-      results
-    })
-  })
-}
-
-// 查询已出库的产品列表,支持模糊查询product_id
-exports.searchOutProduct = (req, res) => {
-  const search_value = req.body.search_value
-  // 如果传入product_id，模糊查询product_id
-  const sql = `select * 
-    from out_products
-    where
-    product_out_id like ?
-    `
-  const queryInfo = [`%${search_value}%`]
+  const pageNum = Number(req.query.pageNum) || 1; // 当前页码
+  const pageSize = Number(req.query.pageSize) || 10; // 每页条数
+  const offset = (pageNum - 1) * pageSize
+  const keyword = `%${req.query.keyword || ''}%`
+  const queryInfo = [keyword]
+  const limit = ` limit ? offset ?`
+  // 基础sql语句
+  let sql = 'select * from out_products where product_out_id like ?'
   db.query(sql, queryInfo, (err, results) => {
     if (err) return res.cc(err)
-    res.send({
-      status: 0,
-      message: '搜索已出库列表成功',
-      results
+    const total = results.length || 0
+    sql += limit
+    queryInfo.push(pageSize, offset)
+    db.query(sql, queryInfo, (err, results) => {
+      if (err) return res.cc(err)
+      res.send({
+        status: 0,
+        message: '查询已出库列表成功',
+        results,
+        total
+      })
     })
   })
 }

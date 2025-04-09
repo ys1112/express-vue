@@ -27,9 +27,6 @@ router.post('/deleteMsg', messageController.deleteMsg)
 // 获取所有公司公告信息列表
 router.get('/getCorpMsg', messageController.getCorpMsg)
 
-// 筛选公司消息
-router.post('/filterMsg', messageController.filterMsg)
-
 // 获取所有系统信息列表
 router.get('/getSysMsg', messageController.getSysMsg)
 

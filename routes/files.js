@@ -14,9 +14,6 @@ const { file_limit } = require('../limit/files')
 // 上传文件
 router.post('/uploadFile', filesController.uploadFile)
 
-// 筛选文件
-router.post('/filterFiles', filesController.filterFiles)
-
 // 删除文件
 router.delete('/deleteFile', filesController.deleteFile)
 

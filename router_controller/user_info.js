@@ -381,36 +381,50 @@ exports.updateUser = (req, res) => {
 
 // get 获取用户列表 1. identity 2. identity 和 department 3. identity 和 status
 exports.getUserList = (req, res) => {
-  const identity = req.query.identity
-  const department = req.query.department
-  const keyword = req.query.search_value
-  const status = req.query.status
-  let queryInfo = []
-  let sql = ''
+  const pageNum = Number(req.query.pageNum) || 1; // 当前页码
+  const pageSize = Number(req.query.pageSize) || 10; // 每页条数
+  const offset = (pageNum - 1) * pageSize
+  const keyword = `%${req.query.keyword || ''}%`
+  const identity = req.query.identity || ''
+  const department = req.query.department || ''
+  const status = req.query.status || ''
+  let queryInfo = [identity]
+  // 基础语法
+  let sql = 'select * from users where identity = ?'
+  const limit = ` limit ? offset ?`
+
+  // 先根据条件查询数据数量total,再根据限制返回前端数据
   if (department) {
-    sql = 'select * from users where identity = ? and department = ?'
-    queryInfo = [identity, department]
+    // 根据身份和部门搜索
+    sql += ' and department = ?'
+    queryInfo.push(department)
   } else if (status) {
-    sql = 'select * from users where identity = ? and status = ?'
-    queryInfo = [identity, status]
+    // 根据身份和冻结状态搜索
+    sql += ' and status = ?'
+    queryInfo.push(status)
   } else if (keyword) {
-    sql = 'select * from users where identity = ? and account like ?'
-    queryInfo = [identity, `%${keyword}%`]
-  } else {
-    sql = 'select * from users where identity = ?'
-    queryInfo = [identity]
+    // 根据身份和账号搜索
+    sql += ' and account like ?'
+    queryInfo.push(keyword)
   }
   db.query(sql, queryInfo, (err, results) => {
     if (err) return res.cc(err)
-    if (results.length > 0) {
-      results.forEach((item, index) => {
-        results[index].password = ''
+    const total = results.length || 0
+    queryInfo.push(pageSize, offset)
+    sql += limit
+    db.query(sql, queryInfo, (err, results) => {
+      if (err) return res.cc(err)
+      if (results.length > 0) {
+        results.forEach((item, index) => {
+          results[index].password = ''
+        })
+      }
+      res.send({
+        status: 0,
+        message: '查询用户列表成功',
+        total,
+        results
       })
-    }
-    res.send({
-      status: 0,
-      message: '查询用户列表成功',
-      results: results
     })
   })
 }
@@ -418,7 +432,7 @@ exports.getUserList = (req, res) => {
 // get 搜索用户列表
 // exports.searchUserList = (req, res) => {
 //   const identity = req.query.identity
-//   const keyword = req.query.search_value
+//   const keyword = req.query.keyword
 //   const sql = 'select * from users where identity = ? and account like ?'
 //   // 模糊查询
 //   db.query(sql, [identity, `%${keyword}%`], (err, results) => {
