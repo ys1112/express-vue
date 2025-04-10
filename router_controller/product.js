@@ -1,5 +1,7 @@
 // 导入数据库
 const db = require('../db/index')
+// 导入mysql2
+const pool = require('../db/sql2')
 
 // *产品管理字段
 
@@ -212,7 +214,9 @@ exports.getProducts = (req, res) => {
   const offset = (pageNum - 1) * pageSize
   const keyword = `%${req.query.keyword || ''}%`
   const queryInfo = [keyword]
-  let sql = 'select * from products where product_id like ?'
+  // order by默认升序
+  // order by product_create_time desc为降序排列
+  let sql = 'select * from products where product_id like ? order by product_create_time'
   const limit = ` limit ? offset ?`
   // 查询一页10条数据
   db.query(sql, queryInfo, (err, results) => {
@@ -494,4 +498,39 @@ exports.deleteDelivery = (req, res) => {
       })
     }
   })
+}
+
+// 获取所有产品列表  mysql2语法,返回值是一个promise const [rows] = await db.query(...) 获取查询结果
+exports.getProductsTest = async (req, res) => {
+  try {
+    const pageNum = Number(req.query.pageNum) || 1; // 当前页码
+    const pageSize = Number(req.query.pageSize) || 10; // 每页条数
+    const offset = (pageNum - 1) * pageSize
+    const queryInfo = []
+    let sql = 'select * from products'
+    // 查询数据总数
+    let countSql = 'SELECT COUNT(*) AS total FROM products';
+    const limit = ` limit ? offset ?`
+    // 查询限制
+    queryInfo.push(pageSize, offset)
+    // sql语句拼接限制语法
+    sql += limit
+    // 查询数据
+    const [rows] = await pool.query(sql, queryInfo)
+    // 查询总数
+    const [totalResult] = await pool.query(countSql, queryInfo.slice(0, -2)) // 排除分页参数
+    // 返回数据
+    res.json({
+      code: 200,
+      message: '成功',
+      data: {
+        total: totalResult[0].total,
+        list: rows
+      }
+    });
+  } catch (error) {
+    console.error('数据库查询失败:', error);
+    // 返回错误时的code
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
 }

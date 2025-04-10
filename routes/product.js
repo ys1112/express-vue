@@ -47,5 +47,8 @@ router.get('/getOutProducts', productController.getOutProducts)
 // 根据id删除已出库产品
 router.delete('/deleteDelivery', productController.deleteDelivery)
 
+router.get('/getProductsTest', productController.getProductsTest)
+
+
 // 向外暴露路由
 module.exports = router;
