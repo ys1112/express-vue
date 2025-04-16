@@ -7,7 +7,7 @@ const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken')
 // 导入jwt配置文件，用于加密和解密
 const jwtconfig = require('../jwt_config/index');
-
+const menuList = require('../config/menu')
 exports.register = (req, res) => {
   // req是前端传过来的数据request，res是返回给前端的数据，也就是result
   const reginfo = req.body
@@ -45,7 +45,8 @@ exports.register = (req, res) => {
       password: reginfo.password,
       identity,
       create_time,
-      status: 0
+      status: 0,
+      menus:JSON.stringify(menuList.usersMenu)
     }, (err, results) => {
       if (err) return res.cc(err)
       // 判断插入状态 affectedRows为影响的行数

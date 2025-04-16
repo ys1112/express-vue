@@ -50,6 +50,7 @@ exports.uploadFile = (req, res) => {
         if (err) return res.cc(err)
         res.send({
           status: 0,
+          fileName:originalName,
           message: '上传文件成功'
         })
       })

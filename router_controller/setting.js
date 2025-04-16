@@ -2,6 +2,7 @@ const { object } = require('joi')
 const db = require('../db/index')
 // 处理文件路径
 const fs = require('fs')
+const pool = require('../db/sql2')
 
 // 设置轮播图
 exports.setSwiper = (req, res) => {
@@ -20,20 +21,20 @@ exports.setSwiper = (req, res) => {
     if (err) return res.cc(err)
     res.send({
       status: 0,
-      set_name:req.body.set_name,
-      url:`http://127.0.0.1:3001/uploads/${generateName}`
+      set_name: req.body.set_name,
+      url: `http://127.0.0.1:3001/uploads/${generateName}`
       // url:`http://127.0.0.1:3001/uploads/${generateName}?t=${Date.now()}`
     })
   })
 }
 // 获取所有轮播图 
-exports.getAllSwiper = (req, res) =>{
+exports.getAllSwiper = (req, res) => {
   const sql = 'select * from setting where set_name like ?'
-  db.query(sql,['swiper%'], (err, results) => {
+  db.query(sql, ['swiper%'], (err, results) => {
     if (err) return res.cc(err)
     res.send({
       results,
-      status:0
+      status: 0
     })
   })
 }
@@ -42,7 +43,7 @@ exports.setCompanyInfo = (req, res) => {
   const set_name = req.body.set_name
   const set_value = req.body.set_value
   const sql = `update setting set set_value = ? where set_name = ?`
-  db.query(sql,[set_value,set_name] , (err, results) => {
+  db.query(sql, [set_value, set_name], (err, results) => {
     if (err) return res.cc(err)
     if (results.affectedRows == 1) {
       res.send({
@@ -54,13 +55,100 @@ exports.setCompanyInfo = (req, res) => {
 }
 
 // 获取所有公司信息
-exports.getCompanyInfo = (req, res) =>{
+exports.getCompanyInfo = (req, res) => {
   const sql = 'select * from setting where set_name like ?'
-  db.query(sql,['company%'], (err, results) => {
+  db.query(sql, ['company%'], (err, results) => {
     if (err) return res.cc(err)
     res.send({
       results,
-      status:0
+      status: 0
     })
   })
+}
+
+
+// 获取用户管理员数据
+exports.getUserData = async (req, res) => {
+  try {
+    const [results] = await pool.query(
+      'select `identity` as name, count(*) as value from users group by `identity` order by value'
+    );
+    res.send({
+      status: 0,
+      message: '成功',
+      results
+    });
+  } catch (error) {
+    console.error('数据库查询失败:', error);
+    // 返回错误时的code
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+}
+
+// 获取信息等级信息
+exports.getMsgLvData = async (req, res) => {
+  try {
+    const [results] = await pool.query(
+      'select `message_level` as name, count(*) as value from message group by `message_level` order by value'
+    );
+    res.send({
+      status: 0,
+      message: '成功',
+      results
+    });
+  } catch (error) {
+    console.error('数据库查询失败:', error);
+    // 返回错误时的code
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+}
+exports.getPriceData = async (req, res) => {
+  try {
+    const [results] = await pool.query(`
+      select 
+      product_category as category, 
+      sum(product_all_price) as total 
+      from products 
+      group by product_category
+    `)
+    res.send({
+      status: 0,
+      message: '成功',
+      results
+    });
+  } catch (error) {
+    console.error('数据库查询失败:', error);
+    // 返回错误时的code
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+}
+
+exports.getLoginCount = async (req, res) => {
+  try {
+    // 构建查询 SQL
+    const [rows] = await pool.execute(`
+      SELECT 
+        date(login_time) as date,
+        count(distinct account) as count
+        from login_log
+        where login_time >= curdate() - interval 6 day
+        group by date
+      `);
+
+    const results = rows.map(({ date, count }) => {
+      return {
+        date: date.toISOString().split('T')[0],
+        count
+      }
+    })
+
+    res.send({
+      results,
+      status:0
+    });
+  } catch (error) {
+    console.error('数据库查询失败:', error);
+    // 返回错误时的code
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
 }

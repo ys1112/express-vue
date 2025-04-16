@@ -85,5 +85,7 @@ router.post('/empowerUser', userInfoController.empowerUser)
 // 删除用户
 router.delete('/deleteUser', userInfoController.deleteUser)
 
+// 修改用户基础账号信息
+router.put('/setAccount', userInfoController.setAccount)
 // 向外暴露路由
 module.exports = router;

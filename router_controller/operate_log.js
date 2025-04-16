@@ -35,6 +35,7 @@ exports.getOperLog = (req, res) => {
   let sql = `select * 
     from operate_log
     where operate_account like ?
+    order by operate_time desc
     `
   db.query(sql, queryInfo, (err, results) => {
     if (err) return res.cc(err)

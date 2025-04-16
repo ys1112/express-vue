@@ -12,7 +12,7 @@ const pool = require('../db/sql2')
 // product_name 产品名称 varchar
 // product_category 产品类别 varchar
 // product_unit 产品单位 varchar
-// product_inwarehouse_number 产品入库数量 库存 int
+// product_in_warehouse_number 产品入库数量 库存 int
 // product_single_price 产品入库单价int
 // product_all_price 产品入库总价 int
 // product_status 库存状态100-300为正常 100以下为库存告急 300以上为过剩varchar
@@ -59,7 +59,7 @@ exports.createProduct = (req, res) => {
     product_name,
     product_category,
     product_unit,
-    product_inwarehouse_number,
+    product_in_warehouse_number,
     product_single_price,
     product_create_person,
     in_memo,
@@ -79,15 +79,15 @@ exports.createProduct = (req, res) => {
       // 状态
       const product_out_status = 0
       // 总价
-      const product_all_price = product_single_price * product_inwarehouse_number
+      const product_all_price = product_single_price * product_in_warehouse_number
       // 商品是否紧急
-      const product_status = getProductStatus(product_inwarehouse_number)
+      const product_status = getProductStatus(product_in_warehouse_number)
       const createInfo = {
         product_id,
         product_name,
         product_category,
         product_unit,
-        product_inwarehouse_number,
+        product_in_warehouse_number,
         product_single_price,
         product_all_price,
         product_create_person,
@@ -137,7 +137,7 @@ exports.applyDelivery = (req, res) => {
       const sql = 'select * from products where id = ?'
       db.query(sql, id, (err, results) => {
         if (err) return res.cc(err)
-        if (product_out_number > results[0].product_inwarehouse_number) {
+        if (product_out_number > results[0].product_in_warehouse_number) {
           return res.send({
             status: 1,
             message: '出库数量错误'
@@ -176,19 +176,19 @@ exports.updateProduct = (req, res) => {
     product_name,
     product_category,
     product_unit,
-    product_inwarehouse_number,
+    product_in_warehouse_number,
     product_single_price,
     in_memo,
   } = req.body
   const id = req.query.id
   const product_update_time = new Date()
-  const product_all_price = product_single_price * product_inwarehouse_number
-  const product_status = getProductStatus(product_inwarehouse_number)
+  const product_all_price = product_single_price * product_in_warehouse_number
+  const product_status = getProductStatus(product_in_warehouse_number)
   const updateInfo = {
     product_name,
     product_category,
     product_unit,
-    product_inwarehouse_number,
+    product_in_warehouse_number,
     product_single_price,
     product_all_price,
     product_update_time,
@@ -215,7 +215,7 @@ exports.getProducts = (req, res) => {
   const keyword = `%${req.query.keyword || ''}%`
   const queryInfo = [keyword]
   // order by默认升序
-  // order by product_create_time desc为降序排列
+  // order by product_create_time desc 为降序排列
   let sql = 'select * from products where product_id like ? order by product_create_time'
   const limit = ` limit ? offset ?`
   // 查询一页10条数据
@@ -325,7 +325,7 @@ exports.approveApply = (req, res) => {
     if (err) return res.cc(err)
     let {
       product_out_id,
-      product_inwarehouse_number,
+      product_in_warehouse_number,
       product_name,
       product_single_price,
       product_all_price,
@@ -352,11 +352,11 @@ exports.approveApply = (req, res) => {
         // 1.重置products申请部分 
         // 2.库存总数减去出库数量，总价更新
         // 3.product_out_status 更新为0 
-        product_inwarehouse_number = product_inwarehouse_number - product_out_number
-        product_all_price = product_inwarehouse_number * product_single_price
-        const product_status = getProductStatus(product_inwarehouse_number)
+        product_in_warehouse_number = product_in_warehouse_number - product_out_number
+        product_all_price = product_in_warehouse_number * product_single_price
+        const product_status = getProductStatus(product_in_warehouse_number)
         const updateInfo = {
-          product_inwarehouse_number,
+          product_in_warehouse_number,
           product_all_price,
           product_status,
           product_out_id: null,
@@ -509,7 +509,7 @@ exports.getProductsTest = async (req, res) => {
     const queryInfo = []
     let sql = 'select * from products'
     // 查询数据总数
-    let countSql = 'SELECT COUNT(*) AS total FROM products';
+    let countSql = 'select count(*) as total from products';
     const limit = ` limit ? offset ?`
     // 查询限制
     queryInfo.push(pageSize, offset)
@@ -517,6 +517,13 @@ exports.getProductsTest = async (req, res) => {
     sql += limit
     // 查询数据
     const [rows] = await pool.query(sql, queryInfo)
+    // 插入操作
+    // await pool.query(
+    //   'INSERT INTO operate_log (account, content, level) VALUES (?, ?, ?)',
+    //   [account, content, level]
+    // );
+    // pool.release();
+    // res.json({ code: 200, message: '日志记录成功' });
     // 查询总数
     const [totalResult] = await pool.query(countSql, queryInfo.slice(0, -2)) // 排除分页参数
     // 返回数据

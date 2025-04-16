@@ -1,5 +1,9 @@
 // 导入数据库
 const db = require('../db/index')
+const pool = require('../db/sql2')
+const io = require('../db/socket')
+const menuList = require('../config/menu')
+
 // 导入密码加密中间件
 const bcryptjs = require('bcryptjs')
 // 导入node.js内置的crypto库，生成匹配图片的uuid
@@ -299,7 +303,13 @@ exports.createAdmin = (req, res) => {
     }
     // 第三步，对密码进行加密
     const hashPassword = bcryptjs.hashSync(password, 10)
-
+    if (identity == '用户管理员') {
+      menus = JSON.stringify(menuList.userAdminMenu)
+    } else if ('产品管理员'){
+      menus = JSON.stringify(menuList.prodAdminMenu)
+    } else {
+      menus = JSON.stringify(menuList.msgAdminMenu)
+    }
     // 注册时间
     const create_time = new Date()
     const createInfo = {
@@ -311,7 +321,8 @@ exports.createAdmin = (req, res) => {
       email,
       department,
       create_time,
-      status: 0
+      status: 0,
+      menus
     }
     // 第四步  把账号和密码插入到users表里面
     const sql1 = 'insert into users set ?'
@@ -335,9 +346,12 @@ exports.createAdmin = (req, res) => {
 // post 删除管理员（降级为普通用户）
 exports.downgradeAdmin = (req, res) => {
   const id = req.body.id
-  const identity = '用户'
-  const sql = 'update users set identity = ? where id = ?'
-  db.query(sql, [identity, id], (err, results) => {
+  const updateInfo = {
+    identity :'用户',
+    menus:JSON.stringify(menuList.usersMenu)
+  }
+  const sql = 'update users set ? where id = ?'
+  db.query(sql, [updateInfo, id], (err, results) => {
     if (err) return res.cc(err)
     if (results.affectedRows == 1) {
       res.send({
@@ -349,7 +363,7 @@ exports.downgradeAdmin = (req, res) => {
 }
 
 // put 编辑用户账号信息 参数：姓名 name ，性别 gender ，邮箱 email ，部门 department
-exports.updateUser = (req, res) => {
+exports.updateUser = async (req, res) => {
   const {
     name,
     gender,
@@ -367,7 +381,22 @@ exports.updateUser = (req, res) => {
     department,
     update_time
   }
+  // 查询用户当前部门,如果修改部门则更新read_list和read_status
+  const querySql = 'select department from users where id = ?'
+  const [oldDepartment] = await pool.query(querySql, id)
   const sql = 'update users set ? where id = ?'
+  if (oldDepartment[0].department != department) {
+    const queryMsg = `select * 
+    from message
+    where message_status = ?
+    and message_receipt_object = ?
+    `
+    const message_status = 0
+    const queryInfo = [message_status, department]
+    const [departMsg] = await pool.query(queryMsg,queryInfo)
+    updateInfo.read_status = 1
+    updateInfo.read_list = JSON.stringify(departMsg.map(item => item.id))
+  }
   db.query(sql, [updateInfo, id], (err, results) => {
     if (err) return res.cc(err)
     if (results.affectedRows == 1) {
@@ -490,8 +519,19 @@ exports.unfreezeUser = (req, res) => {
 exports.empowerUser = (req, res) => {
   const id = req.body.id
   const identity = req.body.identity
-  const sql = 'update users set identity = ? where id = ?'
-  db.query(sql, [identity, id], (err, results) => {
+  if (identity == '用户管理员') {
+    menus = JSON.stringify(menuList.userAdminMenu)
+  } else if ('产品管理员'){
+    menus = JSON.stringify(menuList.prodAdminMenu)
+  } else {
+    menus = JSON.stringify(menuList.msgAdminMenu)
+  }
+  const updateInfo = {
+    identity :req.body.identity,
+    menus
+  }
+  const sql = 'update users set ? where id = ?'
+  db.query(sql, [updateInfo, id], (err, results) => {
     if (err) return res.cc(err)
     if (results.affectedRows == 1) {
       res.send({
@@ -521,4 +561,32 @@ exports.deleteUser = (req, res) => {
       })
     }
   })
+}
+
+// put 编辑用户账号信息 参数：姓名 name ，性别 gender ，邮箱 email
+exports.setAccount = async (req, res) => {
+  const {
+    name,
+    gender,
+    email,
+  } = req.body
+  const id = req.query.id
+  const update_time = new Date()
+  const updateInfo = {
+    name,
+    gender,
+    email,
+    update_time
+  }
+  const sql = 'update users set ? where id = ?'
+  db.query(sql, [updateInfo, id], (err, results) => {
+    if (err) return res.cc(err)
+    if (results.affectedRows == 1) {
+      res.send({
+        status: 0,
+        message: "修改用户账号信息成功"
+      })
+    }
+  })
+  
 }

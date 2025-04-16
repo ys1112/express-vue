@@ -5,6 +5,7 @@ exports.recordLogin = (req, res) => {
   const {
     name,
     account,
+    identity,
     email
   } = req.body
   const login_time = new Date()
@@ -12,6 +13,7 @@ exports.recordLogin = (req, res) => {
   const recordInfo = {
     name,
     account,
+    identity,
     email,
     login_time
   }
@@ -35,7 +37,7 @@ exports.getLoginLog = (req, res) => {
   let sql = `select * 
     from login_log
     where account like ?
-    ORDER BY login_time
+    order by login_time desc
     `
   db.query(sql, queryInfo, (err, results) => {
     if (err) return res.cc(err)

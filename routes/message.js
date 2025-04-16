@@ -39,12 +39,8 @@ router.post('/restoreMsg', messageController.restoreMsg)
 // 根据id删除回收站消息
 router.delete('/deleteRecycleMsg', messageController.deleteRecycleMsg)
 
-// 获取部门消息
-router.post('/getDepartmentMsg', messageController.getDepartmentMsg)
-
-// 更新点击数
-router.post('/updateClick', messageController.updateClick)
-
+// 获取所有回收站信息列表
+router.get('/getAllMemberMsg', messageController.getAllMemberMsg)
 
 // 向外暴露路由
 module.exports = router;

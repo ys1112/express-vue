@@ -12,5 +12,14 @@ router.get('/getAllSwiper', settingController.getAllSwiper)
 router.post('/setCompanyInfo', settingController.setCompanyInfo)
 router.get('/getCompanyInfo', settingController.getCompanyInfo)
 
+// 获取用户管理员数据
+router.get('/getUserData', settingController.getUserData)
+// 获取信息等级信息
+router.get('/getMsgLvData', settingController.getMsgLvData)
+
+router.get('/getPriceData', settingController.getPriceData)
+
+router.get('/getLoginCount', settingController.getLoginCount)
+
 // 向外暴露路由
 module.exports = router;

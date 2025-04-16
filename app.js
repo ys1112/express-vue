@@ -44,12 +44,12 @@ const jwtconfig = require('./jwt_config/index')
 const { expressjwt: jwt } = require('express-jwt')
 
 // 检查是否携带token，排除登录注册接口
-// app.use(jwt({
-//   secret: jwtconfig.jwtSecretKey, algorithms: ['HS256']
-// }).unless({
-//   // 排除登录和注册的接口,以及公开路径
-//   path: [/^\/api\//],
-// }))
+app.use(jwt({
+  secret: jwtconfig.jwtSecretKey, algorithms: ['HS256']
+}).unless({
+  // 排除登录和注册的接口,以及公开路径
+  path: [/^\/api\//],
+}))
 // 引入login路由文件
 const loginRouter = require('./routes/login');
 
@@ -74,6 +74,8 @@ const loginLogRouter = require('./routes/login_log');
 // 引入operateLog路由文件
 const operateLogRouter = require('./routes/operate_log');
 
+// 引入department路由文件
+const departmentRouter = require('./routes/department');
 
 app.use('/api', loginRouter);
 app.use('/user', userInfoRouter);
@@ -83,13 +85,20 @@ app.use('/msg', messageRouter);
 app.use('/file', filesRouter);
 app.use('/login_log', loginLogRouter);
 app.use('/operate_log', operateLogRouter);
+app.use('/dpm', departmentRouter);
 const Joi = require('joi')
 // 对不符合joi规则的情况进行报错
 app.use((err, req, res, next) => {
   // 数据校验失败
-  if (err instanceof Joi.ValidationError) return res.cc(err)
-  // 未知错误
-  res.cc(err)
+  if (err instanceof Joi.ValidationError) return res.send({
+    status:1,
+    message:'输入账号密码不合法'
+  })
+  if (err.name === 'UnauthorizedError') { // JWT 库可能抛出的错误名称
+    return res.status(401).json({ code: 401, message: '身份验证失败' });
+  } else {
+    return res.status(500).json({ code: 500, message: '服务器内部错误' });
+  }
 })
 
 app.listen(PORT, () => {

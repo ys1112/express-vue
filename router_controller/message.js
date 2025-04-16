@@ -1,4 +1,5 @@
 const db = require('../db/index')
+const pool = require('../db/sql2')
 
 
 // message_title 消息主题
@@ -28,7 +29,7 @@ exports.publishMsg = (req, res) => {
   } = req.body
   let messageInfo = {}
   const message_create_time = new Date()
-  if (req.body.message_category == '系统消息') {
+  if (message_category == '系统消息') {
     messageInfo = {
       message_title,
       message_category,
@@ -60,7 +61,8 @@ exports.publishMsg = (req, res) => {
     if (results.affectedRows == 1) {
       return res.send({
         status: 0,
-        message: '发布消息成功'
+        message: '发布消息成功',
+        id: results.insertId
       })
     } else {
       res.send({
@@ -96,7 +98,7 @@ exports.updateCorpMsg = (req, res) => {
     if (results.affectedRows == 1) {
       res.send({
         status: 0,
-        message: "编辑公司信息成功"
+        message: "编辑公司信息成功",
       })
     }
   })
@@ -149,38 +151,47 @@ exports.deleteMsg = (req, res) => {
 }
 
 // 获取所有公司公告信息列表
-exports.getCorpMsg = (req, res) => {
-  const pageNum = Number(req.query.pageNum) || 1; // 当前页码
-  const pageSize = Number(req.query.pageSize) || 10; // 每页条数
-  const offset = (pageNum - 1) * pageSize
-  const department = `%${req.query.department || ''}%`
-  const messageLevel = `%${req.query.messageLevel || ''}%`
-  const queryInfo = [0, '公司公告', department, messageLevel]
-  let sql = `select * 
-  from message 
-  where 
-  message_status = ? 
-  and message_category = ?
-  and message_publish_department like ?
-  and message_level like ?
-  `
-  const limit = ` limit ? offset ?`
+exports.getCorpMsg = async (req, res) => {
 
-  db.query(sql, queryInfo, (err, results) => {
-    if (err) return res.cc(err)
-    const total = results.length || 0
+  try {
+    const pageNum = Number(req.query.pageNum) || 1; // 当前页码
+    const pageSize = Number(req.query.pageSize) || 10; // 每页条数
+    const offset = (pageNum - 1) * pageSize
+    const department = `%${req.query.department || ''}%`
+    const messageLevel = `%${req.query.messageLevel || ''}%`
+    const queryInfo = [0, '公司公告', department, messageLevel]
+    const limit = ` limit ? offset ?`
+    let countSql = `select count(*) as total from message
+    where 
+    message_status = ? 
+    and message_category = ?
+    and message_publish_department like ?
+    and message_level like ?
+    `;
+
+    let sql = `select * 
+    from message 
+    where 
+    message_status = ? 
+    and message_category = ?
+    and message_publish_department like ?
+    and message_level like ?
+    `
+    const [totalResult] = await pool.query(countSql, queryInfo) // 排除分页参数
     queryInfo.push(pageSize, offset)
     sql += limit
-    db.query(sql, queryInfo, (err, results) => {
-      if (err) return res.cc(err)
-      res.send({
-        status: 0,
-        message: '获取公司公告列表成功',
-        results,
-        total
-      })
+    const [rows] = await pool.query(sql, queryInfo)
+    return res.send({
+      status: 0,
+      message: '获取公司公告列表成功',
+      results: rows,
+      total: totalResult[0].total
     })
-  })
+  } catch (error) {
+    console.error('数据库查询失败:', error);
+    // 返回错误时的code
+    return res.status(500).json({ code: 500, message: '服务器错误' });
+  }
 }
 
 // 获取所有系统信息列表
@@ -277,44 +288,38 @@ exports.deleteRecycleMsg = (req, res) => {
   })
 }
 
-// 更新点击数
-exports.updateClick = (req, res) => {
-  const {
-    id
-  } = req.body
-  const sql = 'select * from message where id = ?'
-  db.query(sql, id, (err, results) => {
-    if (err) return res.cc(err)
-    const message_click_number = results[0].message_click_number * 1 + 1
-    const sql1 = 'update message set message_click_number = ? where id = ?'
-    db.query(sql1, [message_click_number, id], (err, results) => {
-      if (err) return res.cc(err)
-      if (results.affectedRows == 1) {
-        res.send({
-          status: 0,
-          message_click_number,
-          message: "点击数增加"
-        })
-      }
-    })
-  })
-}
-
-// 获取部门消息
-exports.getDepartmentMsg = (req, res) => {
-  const message_publish_department = req.body.department
-  const sql = `select * 
-    from message
+// 获取接收对象为全体成员的公司公告和系统消息
+exports.getAllMemberMsg = async (req, res) => {
+  try {
+    const querySysMsg = [0, '系统消息']
+    const queryCorpMsg = [0, '公司公告', '全体成员']
+    const sysSql = `select * 
+    from message 
     where message_status = ?
-    and message_publish_department = ?
+    and message_category = ?
+    order by message_create_time desc
     `
-  const message_status = 0
-  db.query(sql, [message_status, message_publish_department], (err, results) => {
-    if (err) return res.cc(err)
+    const corpSql = `select * 
+    from message 
+    where message_status = ?
+    and message_category = ?
+    and message_receipt_object = ?
+    order by message_create_time desc
+    `
+    const [sysMsg] = await pool.query(sysSql, querySysMsg)
+    const [corpMsg] = await pool.query(corpSql, queryCorpMsg)
     res.send({
       status: 0,
-      message: '获取部门信息成功',
-      results
+      message: '获取成功',
+      results: {
+        companyMsgs: corpMsg,
+        sysMsgs: sysMsg
+      }
     })
-  })
+  } catch (error) {
+    console.error('数据库查询失败:', error);
+    // 返回错误时的code
+    res.status(500).json({ code: 500, message: '服务器错误' });
+  }
+
 }
