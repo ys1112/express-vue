@@ -31,12 +31,16 @@ exports.uploadAvatar = (req, res) => {
   const sql = 'insert into images set ?'
   db.query(sql, {
     image_url: `http://127.0.0.1:3001/uploads/${req.body.id + originalName}`,
+    // 服务器上地址
+    // image_url: `https://api.gmbksys.xyz/uploads/${req.body.id + originalName}`,
     only_id
   }, (err, results) => {
     if (err) return res.cc(err)
     res.send({
       only_id,
       status: 0,
+      // 服务器上地址
+      // url: `https://api.gmbksys.xyz/uploads/${req.body.id + originalName}`
       url: `http://127.0.0.1:3001/uploads/${req.body.id + originalName}`
     })
   })

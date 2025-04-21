@@ -15,6 +15,8 @@ exports.setSwiper = (req, res) => {
   // 更换文件在服务器中的名称
   fs.renameSync('./public/uploads/' + fileName, './public/uploads/' + generateName)
   const set_value = `http://127.0.0.1:3001/uploads/${generateName}`
+  // 服务器上地址
+  // const set_value = `https://api.gmbksys.xyz/uploads/${generateName}`
   // 更新setting表中的swiper的url 
   const sql = 'update setting set set_value = ? where set_name = ?'
   db.query(sql, [set_value, req.body.set_name], (err, results) => {
@@ -23,6 +25,8 @@ exports.setSwiper = (req, res) => {
       status: 0,
       set_name: req.body.set_name,
       url: `http://127.0.0.1:3001/uploads/${generateName}`
+      // 服务器上地址
+      // url: `https://api.gmbksys.xyz/uploads/${generateName}`
       // url:`http://127.0.0.1:3001/uploads/${generateName}?t=${Date.now()}`
     })
   })
@@ -144,7 +148,7 @@ exports.getLoginCount = async (req, res) => {
 
     res.send({
       results,
-      status:0
+      status: 0
     });
   } catch (error) {
     console.error('数据库查询失败:', error);

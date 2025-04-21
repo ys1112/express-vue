@@ -8,5 +8,12 @@ const db = mysql.createPool({
   password:'123456',
   database:'back_end_system',
 })
+// 服务器上信息
+// const db = mysql.createPool({
+//   host:'127.0.0.1',
+//   user:'uer_ys',
+//   password:'ys123123',
+//   database:'db_vue',
+// })
 // 对外暴露数据库
 module.exports = db 
