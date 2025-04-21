@@ -1,5 +1,7 @@
 const express = require('express');
 const app = express();
+// 1.导入path
+const path = require('path')
 const PORT = process.env.PORT || 3001;
 // 引入body-parser
 const bodyParser = require('body-parser')
@@ -13,10 +15,11 @@ const cors = require('cors')
 const multer = require('multer')
 // 全局挂载
 app.use(cors())
-
 // 在server服务端下新建一个public文件夹，在public下新建一个upload文件夹用于存放图片
 const upload = multer({ dest: './public/uploads' })
 app.use(upload.any())
+// 2.静态托管dist
+app.use(express.static(path.join(__dirname, 'dist')))
 // 静态托管
 app.use(express.static('./public'))
 
@@ -48,7 +51,7 @@ app.use(jwt({
   secret: jwtconfig.jwtSecretKey, algorithms: ['HS256']
 }).unless({
   // 排除登录和注册的接口,以及公开路径
-  path: [/^\/api\//],
+  path: [/^\/api\/auth(\/.*)?$/],
 }))
 // 引入login路由文件
 const loginRouter = require('./routes/login');
@@ -77,22 +80,27 @@ const operateLogRouter = require('./routes/operate_log');
 // 引入department路由文件
 const departmentRouter = require('./routes/department');
 
-app.use('/api', loginRouter);
-app.use('/user', userInfoRouter);
-app.use('/set', settingRouter);
-app.use('/pro', productRouter);
-app.use('/msg', messageRouter);
-app.use('/file', filesRouter);
-app.use('/login_log', loginLogRouter);
-app.use('/operate_log', operateLogRouter);
-app.use('/dpm', departmentRouter);
+app.use('/api/auth', loginRouter);
+app.use('/api/users', userInfoRouter);
+app.use('/api/system', settingRouter);
+app.use('/api/products', productRouter);
+app.use('/api/notification', messageRouter);
+app.use('/api/files', filesRouter);
+app.use('/api/signin-records', loginLogRouter);
+app.use('/api/operations', operateLogRouter);
+app.use('/api/dpm', departmentRouter);
+
+// 请求映射到dist
+app.get('*', (req, res)=> {
+  res.sendFile(path.join(__dirname, '/dist/index.html'))
+});
 const Joi = require('joi')
 // 对不符合joi规则的情况进行报错
 app.use((err, req, res, next) => {
   // 数据校验失败
   if (err instanceof Joi.ValidationError) return res.send({
-    status:1,
-    message:'输入账号密码不合法'
+    status: 1,
+    message: '输入账号密码不合法'
   })
   if (err.name === 'UnauthorizedError') { // JWT 库可能抛出的错误名称
     return res.status(401).json({ code: 401, message: '身份验证失败' });
