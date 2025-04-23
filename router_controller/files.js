@@ -42,7 +42,7 @@ exports.uploadFile = (req, res) => {
         file_name: originalName,
         file_url: `http://127.0.0.1:3001/uploads/${originalName}`,
         // 服务器上地址
-        // file_url: `https://api.gmbksys.xyz/uploads/${originalName}`,
+        // file_url: `https://www.gmbksys.xyz/uploads/${originalName}`,
         file_size: fileSize,
         upload_time,
         upload_person,

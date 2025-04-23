@@ -14,7 +14,16 @@ const cors = require('cors')
 // Multer是node.js中间件，用于处理multipart/form-data类型的表单数据，主要用于上传文件
 const multer = require('multer')
 // 全局挂载
-app.use(cors())
+app.use(cors({
+  // origin: /^https:\/\/(.+\.)?gmbksys\.xyz$/, // 前端域名（HTTPS协议，无需端口）
+  // methods: ['GET', 'POST','PUT', 'DELETE', 'OPTIONS'],// 根据实际接口方法扩展
+  // allowedHeaders: ['Authorization', 'Content-Type'], // 显式允许Authorization头
+  // credentials: true // 允许携带凭证（如Cookie）
+}))
+// 显式处理OPTIONS请求（确保在所有路由之前）
+app.options('*', (req, res) => {
+  res.sendStatus(200); // 直接返回200，由CORS中间件添加头
+});
 // 在server服务端下新建一个public文件夹，在public下新建一个upload文件夹用于存放图片
 const upload = multer({ dest: './public/uploads' })
 app.use(upload.any())

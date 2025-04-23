@@ -32,7 +32,7 @@ exports.uploadAvatar = (req, res) => {
   db.query(sql, {
     image_url: `http://127.0.0.1:3001/uploads/${req.body.id + originalName}`,
     // 服务器上地址
-    // image_url: `https://api.gmbksys.xyz/uploads/${req.body.id + originalName}`,
+    // image_url: `https://www.gmbksys.xyz/uploads/${req.body.id + originalName}`,
     only_id
   }, (err, results) => {
     if (err) return res.cc(err)
@@ -40,7 +40,7 @@ exports.uploadAvatar = (req, res) => {
       only_id,
       status: 0,
       // 服务器上地址
-      // url: `https://api.gmbksys.xyz/uploads/${req.body.id + originalName}`
+      // url: `https://www.gmbksys.xyz/uploads/${req.body.id + originalName}`
       url: `http://127.0.0.1:3001/uploads/${req.body.id + originalName}`
     })
   })
